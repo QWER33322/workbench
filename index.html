@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>我的工作台</title>
+<meta name="theme-color" content="#f8a5c2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工作台">
+<meta name="description" content="个人工作台">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root {
+    --bg:#f7f5f0; --card:#ffffff; --card2:#f4f1ec; --text:#3d3d3d; --text2:#9b9b9b;
+    --radius:18px; --shadow:0 2px 16px rgba(180,160,140,0.1);
+    --pink:#f8a5c2; --pink-bg:#fce8f0; --pink-deep:#e8839f;
+    --green:#7bc99e; --green-bg:#e1f3e8; --green-deep:#4fa876;
+    --blue:#8db4d6; --blue-bg:#e5eef6; --blue-deep:#5a8cb8;
+    --purple:#b8a4d4; --purple-bg:#f0eaf6; --purple-deep:#8e74b0;
+    --orange:#f0b890; --orange-bg:#fcf0e5; --orange-deep:#cf8a5a;
+    --gray:#c4c4c4; --gray-bg:#ececec; --gray-deep:#9b9b9b;
+    --yellow:#e8d488; --yellow-bg:#faf5e5; --yellow-deep:#c4a850;
+    --teal:#9bcfc4; --teal-bg:#e5f3f0; --teal-deep:#5fa898;
+  }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    display:flex; height:100vh; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--gray);border-radius:3px;}
+
+  /* ===== 侧边栏 ===== */
+  .sidebar {
+    width:33%; max-width:160px; min-width:110px; height:100vh; background:#fff;
+    border-right:1px solid #f0ede8; display:flex; flex-direction:column;
+    padding:14px 0; flex-shrink:0; overflow-y:auto;
+  }
+  .sidebar-header { text-align:center; padding:8px 8px 14px; margin-bottom:4px; border-bottom:1px solid #f5f3f0; }
+  .sidebar-header .logo { font-size:24px; }
+  .sidebar-header .title { font-size:13px; font-weight:700; color:var(--text); margin-top:2px; }
+  .sidebar-header .date { font-size:10px; color:var(--text2); margin-top:2px; }
+
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:10px 10px; margin:3px 8px;
+    border-radius:13px; cursor:pointer; transition:all .2s; font-size:11px; font-weight:600;
+    color:var(--text2); position:relative;
+  }
+  .nav-item .icon {
+    width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0; transition:all .2s;
+  }
+  .nav-item.active { color:var(--text); }
+  .nav-item.active .icon { transform:scale(1.08); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .nav-item:active { background:var(--card2); }
+
+  .sidebar-footer { margin-top:auto; padding:12px 8px; border-top:1px solid #f5f3f0; }
+  .download-all-btn {
+    width:100%; padding:9px 6px; border:none; border-radius:12px; font-size:10px; font-weight:700;
+    cursor:pointer; background:linear-gradient(135deg,var(--pink),var(--green)); color:#fff;
+    box-shadow:0 3px 10px rgba(180,160,140,0.15); transition:all .2s; white-space:nowrap;
+  }
+  .download-all-btn:active{transform:scale(0.96);}
+
+  /* ===== 主内容区 ===== */
+  .main { flex:1; height:100vh; overflow-y:auto; position:relative; }
+  .topbar {
+    position:sticky; top:0; z-index:50; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px);
+    padding:14px 16px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #f0ede8;
+  }
+  .topbar .page-title { flex:1; font-size:17px; font-weight:700; }
+  .topbar .page-title .sub { font-size:11px; font-weight:400; color:var(--text2); margin-left:6px; }
+  .top-btn {
+    padding:7px 12px; border-radius:11px; border:none; font-size:11px; font-weight:600;
+    cursor:pointer; transition:all .2s; display:flex;align-items:center;gap:4px;
+  }
+  .top-btn:active{transform:scale(0.94);}
+  .top-btn.pink{background:var(--pink-bg);color:var(--pink-deep);}
+  .top-btn.green{background:var(--green-bg);color:var(--green-deep);}
+
+  .content { padding:16px 14px 50px; max-width:600px; margin:0 auto; }
+
+  /* ===== 通用卡片 ===== */
+  .card { background:var(--card); border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .section-label { font-size:14px; font-weight:700; margin:18px 0 10px; display:flex;align-items:center;gap:8px; color:var(--text); }
+  .section-label .dot { width:8px;height:8px;border-radius:50%; }
+
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat-card { border-radius:16px; padding:16px; text-align:center; box-shadow:var(--shadow); }
+  .stat-card .label { font-size:11px; color:var(--text2); font-weight:500; }
+  .stat-card .value { font-size:24px; font-weight:800; margin:4px 0; }
+  .stat-card .sub { font-size:10px; color:var(--text2); }
+
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; padding:10px 6px; color:var(--text2); font-weight:600; font-size:11px; border-bottom:2px solid #f0ede8; }
+  td { padding:10px 6px; border-bottom:1px solid #f5f3f0; }
+  tr:active{background:var(--card2);}
+
+  input,select,textarea {
+    background:var(--card2); border:1px solid #ececec; color:var(--text);
+    padding:10px 12px; border-radius:12px; font-size:13px; flex:1; min-width:0; outline:none; font-family:inherit;
+  }
+  input:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-bg);}
+  textarea{resize:vertical;min-height:50px;}
+  .input-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+  .btn{border:none;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;flex:0 0 auto;}
+  .btn:active{transform:scale(0.95);}
+  .btn-pink{background:var(--pink);color:#fff;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-ghost{background:transparent;border:1px solid #ddd;color:var(--text2);}
+  .btn-sm{padding:6px 10px;font-size:11px;border-radius:10px;}
+
+  .progress-bar{height:8px;background:#eee;border-radius:4px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:4px;transition:width .5s;}
+
+  .review-box{border-radius:12px;padding:14px;font-size:12px;line-height:1.8;margin-top:8px;}
+  .review-box .t{font-weight:700;margin-bottom:6px;font-size:13px;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;}
+  .chart-wrap{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .chart-wrap h3{font-size:13px;margin-bottom:10px;font-weight:700;}
+
+  /* Todo */
+  .todo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:12px;margin-bottom:6px;transition:all .2s;}
+  .todo-item.done{opacity:0.4;}
+  .todo-item.done .todo-text{text-decoration:line-through;color:var(--gray-deep);}
+  .todo-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--gray);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;transition:all .2s;}
+  .todo-check.checked{background:var(--green);border-color:var(--green);}
+  .todo-text{flex:1;font-size:13px;}
+  .todo-del{background:none;border:none;color:var(--gray-deep);font-size:16px;cursor:pointer;flex:0 0 auto;}
+
+  /* 写作/公文 列表 */
+  .list-item{background:var(--card);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
+  .list-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .list-head .title{font-size:14px;font-weight:600;}
+  .list-head .arrow{transition:transform .3s;color:var(--text2);}
+  .list-item.open .list-head .arrow{transform:rotate(90deg);}
+  .list-body{display:none;padding:0 14px 12px;}
+  .list-item.open .list-body{display:block;}
+  .add-btn{width:100%;padding:12px;background:transparent;border:2px dashed #ddd;color:var(--text2);border-radius:14px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;}
+  .add-btn:active{background:var(--card2);}
+
+  /* 面板浮层 */
+  .panel{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:200;display:none;flex-direction:column;}
+  .panel.show{display:flex;}
+  .panel-header{padding:14px 16px;display:flex;align-items:center;gap:10px;}
+  .panel-header .back{font-size:22px;cursor:pointer;color:var(--text);padding:4px 8px;}
+  .panel-header h2{font-size:16px;flex:1;}
+  .panel-body{flex:1;overflow-y:auto;padding:16px;}
+
+  .msg{margin-bottom:10px;max-width:85%;}
+  .msg.user{margin-left:auto;text-align:right;}
+  .msg .bubble{display:inline-block;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;}
+  .msg.bot .bubble{background:#fff;color:var(--text);border-bottom-left-radius:4px;box-shadow:var(--shadow);}
+  .msg.user .bubble{background:var(--pink);color:#fff;border-bottom-right-radius:4px;}
+  .panel-input{padding:10px;background:#fff;display:flex;gap:6px;border-top:1px solid #eee;}
+
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#3d3d3d;color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  .word-chip{display:inline-block;padding:6px 10px;border-radius:8px;margin:3px;font-size:12px;background:var(--card2);border:1px solid #eee;cursor:pointer;}
+  .word-chip .w{font-weight:700;color:var(--green-deep);}
+  .word-chip .m{color:var(--text2);font-size:10px;display:block;}
+  .hl{color:var(--green-deep);font-weight:700;}
+
+  .body-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;}
+  .body-grid .b-item{background:var(--card2);padding:8px;border-radius:10px;text-align:center;}
+  .body-grid .b-label{font-size:10px;color:var(--text2);}
+  .body-grid .b-val{font-size:14px;font-weight:700;}
+
+  /* 侧边栏折叠 */
+  .sidebar { transition:width .3s ease, transform .3s ease; overflow:hidden; }
+  .sidebar.collapsed { width:0; min-width:0; padding:0; border-right:none; }
+  .sidebar.collapsed .sidebar-header,
+  .sidebar.collapsed .sidebar-footer,
+  .sidebar.collapsed #navList { display:none; }
+  .toggle-sidebar {
+    width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--pink-bg);color:var(--pink-deep);font-size:14px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    transition:all .2s;box-shadow:0 2px 6px rgba(180,160,140,0.15);
+  }
+  .toggle-sidebar:active{transform:scale(0.9);}
+  /* 收起后左侧浮出一个圆形展开按钮 */
+  .sidebar-open-fab {
+    position:fixed;top:14px;left:8px;z-index:60;width:32px;height:32px;border-radius:50%;
+    border:none;cursor:pointer;background:linear-gradient(135deg,var(--pink),var(--green));
+    color:#fff;font-size:16px;display:none;align-items:center;justify-content:center;
+    box-shadow:0 3px 10px rgba(180,160,140,0.25);transition:all .2s;
+  }
+  .sidebar-open-fab.show{display:flex;}
+  .sidebar-open-fab:active{transform:scale(0.9);}
+</style>
+</head>
+<body>
+
+<!-- ===== 侧边栏 ===== -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="logo">🌸</div>
+      <button class="toggle-sidebar" onclick="collapseSidebar()" title="收起">‹</button>
+    </div>
+    <div class="date" id="sideDate"></div>
+  </div>
+  <div id="navList"></div>
+  <div class="sidebar-footer">
+    <button class="download-all-btn" onclick="downloadAllData()">📦 打包下载</button>
+    <button class="download-all-btn" style="margin-top:6px;background:linear-gradient(135deg,var(--blue),var(--green));" onclick="toggleDataPanel()">🔄 数据管理</button>
+  </div>
+</div>
+
+<!-- 侧边栏收起后的展开按钮 -->
+<button class="sidebar-open-fab" id="sidebarFab" onclick="expandSidebar()">☰</button>
+
+<!-- ===== 主区域 ===== -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">饮食体重<span class="sub" id="pageSub"></span></div>
+    <button class="top-btn pink" onclick="toggleUpdate()">🔄 更新</button>
+    <button class="top-btn green" onclick="toggleAI()">🤖 AI</button>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- 更新面板 -->
+<div class="panel" id="updatePanel">
+  <div class="panel-header" style="background:var(--pink-bg);">
+    <span class="back" onclick="toggleUpdate()">‹</span>
+    <h2>🔄 更新页面</h2>
+  </div>
+  <div class="panel-body">
+    <div style="background:var(--pink-bg);border-radius:12px;padding:14px;font-size:12px;line-height:1.7;color:var(--pink-deep);margin-bottom:12px;">
+      📌 在下方输入新需求，提交后回到对话框告诉我，我会更新代码，你刷新即可看到新版本。
+    </div>
+    <textarea id="updateInput" placeholder="输入你的新需求..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-pink" style="flex:1" onclick="submitUpdate()">📤 提交需求</button>
+      <button class="btn btn-green" onclick="downloadPage()">⬇️ 下载页面</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="location.reload()">🔄 刷新加载</button>
+    <div class="section-label"><span class="dot" style="background:var(--pink)"></span>历史需求</div>
+    <div id="reqHistory"></div>
+  </div>
+</div>
+
+<!-- AI面板 -->
+<div class="panel" id="aiPanel">
+  <div class="panel-header" style="background:var(--green-bg);">
+    <span class="back" onclick="toggleAI()">‹</span>
+    <h2>🤖 AI 交流</h2>
+  </div>
+  <div class="panel-body" id="aiMessages">
+    <div class="msg bot"><div class="bubble">你好！可以和我聊饮食、学习、写作、账户、英语等任何问题 🌸</div></div>
+  </div>
+  <div class="panel-input">
+    <input id="aiInput" placeholder="输入你想聊的..." onkeydown="if(event.key==='Enter')sendAI()">
+    <button class="btn btn-green" onclick="sendAI()">发送</button>
+  </div>
+</div>
+
+<!-- 数据管理面板 -->
+<div class="panel" id="dataPanel">
+  <div class="panel-header" style="background:var(--blue-bg);">
+    <span class="back" onclick="toggleDataPanel()">‹</span>
+    <h2>🔄 数据管理</h2>
+  </div>
+  <div class="panel-body">
+    <!-- 数据概况 -->
+    <div style="background:var(--blue-bg);border-radius:14px;padding:14px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--blue-deep);margin-bottom:8px">📊 当前数据概况</div>
+      <div id="dataOverview" style="font-size:12px;line-height:1.8"></div>
+    </div>
+
+    <!-- 备份 -->
+    <div class="section-label"><span class="dot" style="background:var(--green)"></span>📤 备份数据（更新前必做）</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+        💡 每次更新页面前，先点「导出备份」，保存一份 JSON 文件到手机。<br>
+        如果更新后数据丢失，用「导入恢复」一键还原。
+      </div>
+      <button class="btn btn-green" style="width:100%;margin-bottom:8px" onclick="exportBackup()">📤 导出数据备份(.json)</button>
+      <button class="btn" style="background:var(--blue);color:#fff;width:100%;margin-bottom:8px" onclick="downloadPage()">⬇️ 下载页面本体(.html)</button>
+      <button class="btn btn-pink" style="width:100%" onclick="downloadAllData()">📦 打包下载全部(zip)</button>
+    </div>
+
+    <!-- 恢复 -->
+    <div class="section-label"><span class="dot" style="background:var(--orange)"></span>📥 导入恢复</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+        ⚠️ 导入会<b>覆盖</b>当前所有数据，请确认备份文件正确。<br>
+        支持导入之前导出的 .json 备份文件。
+      </div>
+      <label class="add-btn" style="display:block;text-align:center">📂 选择备份文件导入<input type="file" accept=".json" style="display:none" onchange="importBackup(event)"></label>
+      <div id="importResult" style="margin-top:10px"></div>
+    </div>
+
+    <!-- 更新指引 -->
+    <div class="section-label"><span class="dot" style="background:var(--pink)"></span>📋 更新操作指南</div>
+    <div class="card">
+      <div style="font-size:12px;line-height:1.8;color:var(--text)">
+        <b style="color:var(--pink-deep)">场景1：同浏览器更新（数据不丢）</b><br>
+        ① 我更新代码后，你刷新页面 → 数据自动还在 ✅<br>
+        ② 无需任何操作<br><br>
+        <b style="color:var(--pink-deep)">场景2：换了新 HTML 文件</b><br>
+        ① 打开旧页面 → 点「导出备份」→ 保存 .json<br>
+        ② 打开新页面 → 点「导入恢复」→ 选 .json → 数据回来 ✅<br><br>
+        <b style="color:var(--pink-deep)">场景3：换手机/清缓存</b><br>
+        ① 旧手机打开页面 → 「导出备份」→ 传到新手机<br>
+        ② 新手机打开工作台 → 「导入恢复」→ 选 .json ✅<br><br>
+        <b style="color:var(--pink-deep)">场景4：数据不小心丢了</b><br>
+        ① 只要之前「导出备份」过 → 找到 .json → 「导入恢复」<br>
+        ② 数据完整恢复，包括所有模块的所有记录 ✅
+      </div>
+    </div>
+
+    <!-- 自动备份提示 -->
+    <div class="section-label"><span class="dot" style="background:var(--purple)"></span>⚙️ 自动备份</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">
+        系统每次记录数据时会自动在本地存一份副本。<br>
+        上次自动备份时间：<b id="autoBackupTime" style="color:var(--text)">—</b><br>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="checkAutoBackup()">🔍 检查自动备份</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// 调试：捕获并显示错误
+window.onerror=function(msg,src,line,col,err){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;background:#ff4757;color:#fff;padding:8px;font-size:11px;z-index:99999;font-family:monospace;word-break:break-all;';
+  d.textContent=`JS错误: ${msg} | 行${line}`;
+  document.body&&document.body.appendChild(d);
+  console.error('ERR:',msg,src,line,err);
+};
+const DB={ load(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}}, save(k,v){localStorage.setItem(k,JSON.stringify(v))} };
+
+// 模块定义 - 莫兰迪配色
+const modules=[
+  {id:0,name:'Todo清单',icon:'✅',color:'#f0b890',bg:'#fcf0e5',deep:'#cf8a5a'},
+  {id:1,name:'饮食体重',icon:'🍱',color:'#f8a5c2',bg:'#fce8f0',deep:'#e8839f'},
+  {id:2,name:'公考学习',icon:'📚',color:'#7bc99e',bg:'#e1f3e8',deep:'#4fa876'},
+  {id:3,name:'公文写作',icon:'📝',color:'#8db4d6',bg:'#e5eef6',deep:'#5a8cb8'},
+  {id:4,name:'写作记录',icon:'✍️',color:'#b8a4d4',bg:'#f0eaf6',deep:'#8e74b0'},
+  {id:5,name:'英语学习',icon:'🌐',color:'#9bcfc4',bg:'#e5f3f0',deep:'#5fa898'},
+  {id:6,name:'小说书架',icon:'📖',color:'#c4c4c4',bg:'#ececec',deep:'#9b9b9b'},
+];
+let curMod=0;
+
+// 数据（初始全为空）
+let diet=DB.load('diet',[]);
+let bodyData=DB.load('bodyData',[]);
+let study=DB.load('study',[]);
+let docWriting=DB.load('docWriting',[]);   // 公文写作
+let docInsp=DB.load('docInsp',[]);          // 语句灵感
+let docStore=DB.load('docStore',[]);        // 优秀公文存储
+let writes=DB.load('writes',[]);
+let todos=DB.load('todos',[]);
+let accounts=DB.load('accounts',[]);
+let engLog=DB.load('engLog',[]);
+let books=DB.load('books',[]);
+let reqHistory=DB.load('reqHistory',[]);
+
+function $(id){return document.getElementById(id);}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);}
+
+// ===== 侧边栏折叠 =====
+function collapseSidebar(){
+  $('sidebar').classList.add('collapsed');
+  $('sidebarFab').classList.add('show');
+  localStorage.setItem('sidebarCollapsed','1');
+}
+function expandSidebar(){
+  $('sidebar').classList.remove('collapsed');
+  $('sidebarFab').classList.remove('show');
+  localStorage.removeItem('sidebarCollapsed');
+}
+
+// ===== 侧边栏渲染 =====
+function renderNav(){
+  $('navList').innerHTML=modules.map(m=>`
+    <div class="nav-item ${curMod===m.id?'active':''}" onclick="switchMod(${m.id})" style="${curMod===m.id?`background:${m.bg};`:''}">
+      <div class="icon" style="background:${m.bg};">${m.icon}</div>
+      <span>${m.name}</span>
+    </div>`).join('');
+}
+function switchMod(i){
+  curMod=i; const m=modules[i];
+  $('pageTitle').innerHTML=m.name+'<span class="sub">  '+getSubText(i)+'</span>';
+  $('pageTitle').style.color=m.deep;
+  renderNav(); renderContent();
+}
+function getSubText(i){
+  const c=[todos.filter(t=>!t.done).length+'项待办',diet.length+'条记录',study.length+'条记录',docStore.length+'篇存储',writes.length+'部作品','今日30词',books.length+'本书'];
+  return c[i]||'';
+}
+
+// ===== 内容区渲染 =====
+function renderContent(){
+  const c=$('content'); const m=modules[curMod];
+  c.innerHTML='';
+  if(curMod===0) c.innerHTML=renderTodo();
+  else if(curMod===1) c.innerHTML=renderDiet();
+  else if(curMod===2) c.innerHTML=renderStudy();
+  else if(curMod===3) c.innerHTML=renderDocWriting();
+  else if(curMod===4) c.innerHTML=renderWrites();
+  else if(curMod===5) c.innerHTML=renderEnglish();
+  else if(curMod===6) c.innerHTML=renderBooks();
+  // 重新设置日期默认值
+  setTimeout(()=>initDates(),0);
+  // 执行图表等后渲染
+  if(curMod===1) initDietChart();
+  if(curMod===2) initStudyChart();
+  if(curMod===5) initEnglishAudio();
+}
+
+// ===== 1.饮食体重 =====
+function renderDiet(){
+  const weights=diet.filter(d=>d.w).sort((a,b)=>a.date.localeCompare(b.date));
+  let curW='',delta='—',remain='—';
+  if(weights.length){
+    curW=weights[weights.length-1].w;
+    if(weights.length>1){const d=(parseFloat(weights[weights.length-1].w)-parseFloat(weights[weights.length-2].w)).toFixed(1);delta=d<0?`↓${Math.abs(d)}kg`:d>0?`↑${d}kg`:'持平';}
+    remain=(parseFloat(weights[weights.length-1].w)-55).toFixed(1);
+  }
+  return `
+  <!-- 体重卡片：左当前(可填) 右目标55kg -->
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--pink-bg);text-align:left;padding:16px">
+      <div class="label">我的体重</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0">
+        <input id="weightDisplay" type="number" step="0.1" value="${curW}" placeholder="—" style="font-size:26px;font-weight:800;color:var(--pink-deep);background:transparent;border:none;width:80px;padding:0;text-align:left">
+        <span style="font-size:16px;color:var(--pink-deep)">kg</span>
+      </div>
+      <div class="sub">${delta}</div>
+      <button class="btn btn-pink btn-sm" style="margin-top:6px" onclick="saveWeight()">保存体重</button>
+    </div>
+    <div class="stat-card" style="background:var(--green-bg)">
+      <div class="label">目标体重</div>
+      <div class="value" style="color:var(--green-deep)">55kg</div>
+      <div class="sub">${remain==='—'?'开始记录吧':remain>0?`还需减 ${remain}kg`:`已达标 🎉`}</div>
+    </div>
+  </div>
+  <!-- 体重趋势 -->
+  <div class="chart-wrap"><h3>📈 体重趋势</h3><canvas id="weightChart" height="150"></canvas></div>
+  <!-- 饮食记录与输入合并为一个板块 -->
+  <div class="section-label"><span class="dot" style="background:var(--pink)"></span>🍱 饮食记录</div>
+  <div class="card">
+    <div class="input-row">
+      <input id="mealDate" type="date" style="flex:0 0 120px">
+      <select id="mealType" style="flex:0 0 70px"><option>早餐</option><option>午餐</option><option>晚餐</option><option>加餐</option></select>
+    </div>
+    <div class="input-row">
+      <input id="mealFood" placeholder="食物内容"><input id="mealCal" type="number" placeholder="卡路里" style="flex:0 0 80px">
+    </div>
+    <button class="btn btn-pink" style="width:100%" onclick="addDiet()">＋ 添加饮食记录</button>
+    <div style="margin-top:10px;overflow-x:auto">
+      <table>
+        <thead><tr><th>日期</th><th>餐</th><th>食物</th><th>热量</th><th>体重</th></tr></thead>
+        <tbody>${diet.map(d=>`<tr><td>${d.date.slice(5)}</td><td>${d.type}</td><td>${d.food||'—'}</td><td>${d.cal||'—'}</td><td>${d.w||'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">暂无记录</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
+  <!-- 身体维度 -->
+  <div class="section-label"><span class="dot" style="background:var(--pink)"></span>🏃 身体维度</div>
+  <div class="card">
+    <div class="body-grid" id="bodyGrid"></div>
+    <div class="input-row"><input id="bodyDate" type="date" style="flex:0 0 130px"></div>
+    <div class="body-grid">
+      <input id="bi_chest" type="number" placeholder="胸围" style="font-size:11px">
+      <input id="bi_waist" type="number" placeholder="腰围" style="font-size:11px">
+      <input id="bi_hip" type="number" placeholder="臀围" style="font-size:11px">
+      <input id="bi_thigh" type="number" placeholder="大腿" style="font-size:11px">
+      <input id="bi_arm" type="number" placeholder="上臂" style="font-size:11px">
+      <input id="bi_fat" type="number" placeholder="体脂%" style="font-size:11px">
+    </div>
+    <button class="btn btn-pink" style="width:100%" onclick="addBody()">记录身体数据</button>
+  </div>
+  <!-- 复盘 -->
+  <div class="section-label"><span class="dot" style="background:var(--pink)"></span>📋 复盘总结</div>
+  <div class="card"><div class="review-box" style="background:var(--pink-bg);color:var(--pink-deep)"><div class="t">饮食 & 体重复盘</div><div id="dietReview">${diet.length?getDietReview():'开始记录后自动生成复盘 📝'}</div></div></div>
+  `;
+}
+const bodyFields=[{k:'chest',l:'胸围',u:'cm'},{k:'waist',l:'腰围',u:'cm'},{k:'hip',l:'臀围',u:'cm'},{k:'thigh',l:'大腿',u:'cm'},{k:'arm',l:'上臂',u:'cm'},{k:'fat',l:'体脂',u:'%'}];
+function addDiet(){
+  const date=$('mealDate').value||todayStr(),type=$('mealType').value,food=$('mealFood').value.trim(),cal=$('mealCal').value;
+  if(!food){toast('请输入食物');return;}
+  diet.push({date,type,food,cal,w:''});DB.save('diet',diet);
+  $('mealFood').value='';$('mealCal').value='';toast('✅ 已记录');renderContent();
+}
+function saveWeight(){
+  const w=$('weightDisplay').value;
+  if(!w){toast('请输入体重');return;}
+  const date=$('mealDate')?$('mealDate').value||todayStr():todayStr();
+  // 找今天有没有已记录的体重行，有就更新，没有就新增
+  const exist=diet.find(d=>d.date===date&&d.w);
+  if(exist){ exist.w=w; } else { diet.push({date,type:'',food:'',cal:'',w}); }
+  DB.save('diet',diet);toast('✅ 体重已保存');renderContent();
+}
+function addBody(){
+  const date=$('bodyDate').value||todayStr();const entry={date};
+  bodyFields.forEach(f=>entry[f.k]=$('bi_'+f.k).value||'');
+  if(!bodyFields.some(f=>entry[f.k])){toast('至少填一项');return;}
+  bodyData.push(entry);DB.save('bodyData',bodyData);
+  bodyFields.forEach(f=>$('bi_'+f.k).value='');toast('✅ 已记录');renderContent();
+}
+function getDietReview(){
+  const last7=diet.filter(d=>(Date.now()-new Date(d.date))/86400000<=7);
+  const totalCal=last7.reduce((s,d)=>s+(parseFloat(d.cal)||0),0);
+  return `近7天<b>${last7.length}</b>餐，摄入<b>${totalCal}</b>千卡<br>日均<b>${(totalCal/7).toFixed(0)}</b>千卡<br>💡控制晚餐热量，多蔬菜蛋白质`;
+}
+function initDietChart(){
+  const ctx=$('weightChart');if(!ctx)return;
+  const weights=diet.filter(d=>d.w).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!weights.length)return;
+  new Chart(ctx,{type:'line',data:{labels:weights.map(w=>w.date.slice(5)),datasets:[{data:weights.map(w=>parseFloat(w.w)),borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#7bc99e'}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},x:{grid:{display:false},ticks:{color:'#9b9b9b'}}}}});
+  // 身体围度
+  const bg=$('bodyGrid');
+  if(bg&&bodyData.length){
+    const last=bodyData[bodyData.length-1],prev=bodyData[bodyData.length-2];
+    bg.innerHTML=bodyFields.map(f=>{
+      const v=last[f.k]||'—';let d='—';
+      if(last[f.k]&&prev&&prev[f.k])d=(parseFloat(last[f.k])-parseFloat(prev[f.k])).toFixed(1);
+      return `<div class="b-item"><div class="b-label">${f.l}</div><div class="b-val">${v?v+f.u:'—'}</div><div style="font-size:9px;color:#9b9b9b">${d}</div></div>`;
+    }).join('');
+  }else if(bg){bg.innerHTML='<div style="grid-column:1/4;text-align:center;color:#bbb;font-size:12px;padding:8px">暂无围度数据</div>';}
+}
+
+// ===== 1.公考学习 =====
+const subjects=[
+  {n:'政治理论',c:'#f8a5c2'},{n:'常识判断',c:'#7bc99e'},{n:'言语理解',c:'#8db4d6'},
+  {n:'数量关系',c:'#f0b890'},{n:'判断推理',c:'#b8a4d4'},{n:'资料分析',c:'#e8d488'},
+  {n:'归纳概括·分析对策',c:'#9bcfc4'},{n:'贯彻执行',c:'#c4c4c4'},{n:'大作文',c:'#5a8cb8'},
+];
+function renderStudy(){
+  const todayStudy=study.filter(s=>s.date===todayStr()).reduce((s,x)=>s+(parseFloat(x.time)||0),0);
+  const total=study.reduce((s,x)=>s+(parseFloat(x.time)||0),0);
+  const progress={};subjects.forEach(s=>progress[s.n]=0);
+  study.forEach(s=>{if(progress[s.n]!==undefined)progress[s.n]+=parseFloat(s.time)||0;});
+  const overall=Math.round(Object.values(progress).reduce((a,b)=>a+Math.min(100,b/20*100),0)/subjects.length);
+  return `
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--green-bg);"><div class="label">今日学习</div><div class="value" style="color:var(--green-deep)">${todayStudy.toFixed(1)}h</div><div class="sub">累计${total.toFixed(1)}h</div></div>
+    <div class="stat-card" style="background:var(--pink-bg);"><div class="label">总进度</div><div class="value" style="color:var(--pink-deep)">${overall}%</div><div class="sub">加油💪</div></div>
+  </div>
+  <div class="chart-wrap"><h3>📊 各模块进度</h3><canvas id="subjectChart" height="180"></canvas></div>
+  <div class="section-label"><span class="dot" style="background:var(--green)"></span>学习板块</div>
+  <div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    ${subjects.map(s=>{const p=Math.min(100,Math.round((progress[s.n]||0)/20*100));return `<div style="background:var(--card2);padding:10px;border-radius:12px;cursor:pointer" onclick="$('studySubject').value='${s.n}'">
+      <div style="font-size:12px;font-weight:600;color:${s.c}">${s.n}</div>
+      <div style="font-size:18px;font-weight:800;color:${s.c}">${p}%</div>
+      <div style="font-size:10px;color:#9b9b9b">${(progress[s.n]||0).toFixed(1)}h</div>
+      <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:${p}%;background:${s.c}"></div></div>
+    </div>`}).join('')}
+  </div></div>
+  <div class="section-label"><span class="dot" style="background:var(--green)"></span>记录学习</div>
+  <div class="card">
+    <div class="input-row"><select id="studySubject" style="flex:1">${subjects.map(s=>`<option>${s.n}</option>`).join('')}</select><input id="studyTime" type="number" placeholder="时长h" style="flex:0 0 80px"></div>
+    <div class="input-row"><input id="studyDate" type="date"><input id="studyContent" placeholder="内容摘要"><button class="btn btn-green" onclick="addStudy()">记录</button></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--green)"></span>学习记录</div>
+  <div class="card" style="padding:8px;overflow-x:auto"><table>
+    <thead><tr><th>日期</th><th>板块</th><th>时长</th><th>内容</th></tr></thead>
+    <tbody>${study.slice().reverse().slice(0,20).map(s=>`<tr><td>${s.date.slice(5)}</td><td>${s.subject}</td><td>${s.time}h</td><td>${s.content||'—'}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:#bbb;padding:16px">暂无记录</td></tr>'}</tbody>
+  </table></div>`;
+}
+function addStudy(){
+  const date=$('studyDate').value||todayStr(),subject=$('studySubject').value,time=$('studyTime').value,content=$('studyContent').value.trim();
+  if(!time){toast('请输入时长');return;}
+  study.push({date,subject,time,content});DB.save('study',study);
+  $('studyTime').value='';$('studyContent').value='';toast('✅ 已记录');renderContent();
+}
+function initStudyChart(){
+  const ctx=$('subjectChart');if(!ctx)return;
+  const progress={};subjects.forEach(s=>progress[s.n]=0);
+  study.forEach(s=>{if(progress[s.n]!==undefined)progress[s.n]+=parseFloat(s.time)||0;});
+  new Chart(ctx,{type:'bar',data:{labels:subjects.map(s=>s.n),datasets:[{data:subjects.map(s=>Math.min(100,(progress[s.n]||0)/20*100)),backgroundColor:subjects.map(s=>s.c),borderRadius:5}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},y:{grid:{display:false},ticks:{color:'#3d3d3d',font:{size:9}}}}}});
+}
+
+// ===== 2.公文写作 =====
+function renderDocWriting(){
+  return `
+  <div class="section-label"><span class="dot" style="background:var(--blue)"></span>📝 段落思路分析</div>
+  <div class="card">
+    <textarea id="docInput" placeholder="在此输入或粘贴公文段落，AI将分析思路..." style="min-height:80px;margin-bottom:8px"></textarea>
+    <button class="btn" style="background:var(--blue);color:#fff;width:100%" onclick="analyzeDoc()">🔍 分析思路</button>
+    <div id="docAnalysis" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section-label"><span class="dot" style="background:var(--blue)"></span>💡 语句灵感库</div>
+  <div class="card">
+    <div class="input-row"><input id="inspText" placeholder="记录好词好句..."><button class="btn btn-sm" style="background:var(--blue);color:#fff" onclick="addInsp()">＋</button></div>
+    ${docInsp.map((s,i)=>`<div style="background:var(--card2);padding:10px;border-radius:10px;margin-bottom:6px;font-size:13px;line-height:1.6">${s.text}<button class="btn btn-ghost btn-sm" style="float:right" onclick="delInsp(${i})">删</button></div>`).join('')||'<div style="color:#bbb;text-align:center;padding:12px;font-size:12px">暂无灵感，遇到好句子就记下来吧 ✨</div>'}
+  </div>
+
+  <div class="section-label"><span class="dot" style="background:var(--blue)"></span>📚 优秀公文存储</div>
+  ${docStore.map((d,i)=>`<div class="list-item" id="ds${i}"><div class="list-head" onclick="$('ds${i}').classList.toggle('open')"><span class="title">${d.title}</span><span class="arrow">›</span></div><div class="list-body"><div style="font-size:13px;line-height:1.8;white-space:pre-wrap;background:var(--card2);padding:12px;border-radius:10px;max-height:300px;overflow-y:auto">${d.content}</div><div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="delDoc(${i})" style="color:#e8839f;border-color:#e8839f">删除</button></div></div></div>`).join('')}
+  <button class="add-btn" onclick="addDoc()">＋ 添加公文</button>
+  `;
+}
+function analyzeDoc(){
+  const text=$('docInput').value.trim();if(!text){toast('请输入内容');return;}
+  $('docAnalysis').innerHTML=`<div class="review-box" style="background:var(--blue-bg);color:var(--blue-deep)">
+    <div class="t">🔍 思路分析</div>
+    <b>结构：</b>${text.length>50?'段落较长，建议分层次梳理':'段落简洁，逻辑清晰'}<br>
+    <b>要点：</b>提取关键词 → ${text.slice(0,20)}...<br>
+    <b>建议：</b>${text.includes('一')||text.includes('首先')?'已使用序号，层次分明':'建议加入"首先/其次/最后"等逻辑词'}<br>
+    <b>语气：</b>${/请|须|必须|要求/.test(text)?'指令性语气，适合通知/决定':'陈述性语气，适合报告/总结'}<br>
+    💡公文写作要点：①开门见山点题 ②层次分明 ③用词准确规范 ④结尾明确要求
+  </div>`;
+}
+function addInsp(){const t=$('inspText').value.trim();if(!t)return;docInsp.push({text:t});DB.save('docInsp',docInsp);$('inspText').value='';toast('✅ 已添加');renderContent();}
+function delInsp(i){docInsp.splice(i,1);DB.save('docInsp',docInsp);renderContent();}
+function addDoc(){const title=prompt('公文标题：');if(!title)return;const content=prompt('正文内容：')||'';docStore.push({title,content});DB.save('docStore',docStore);toast('✅ 已添加');renderContent();}
+function delDoc(i){if(!confirm('删除？'))return;docStore.splice(i,1);DB.save('docStore',docStore);renderContent();}
+
+// ===== 3.写作记录 =====
+function renderWrites(){
+  const total=writes.reduce((s,w)=>s+w.entries.reduce((ss,e)=>ss+(parseInt(e.words)||0),0),0);
+  return `
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--purple-bg);"><div class="label">作品</div><div class="value" style="color:var(--purple-deep)">${writes.length}</div><div class="sub">部</div></div>
+    <div class="stat-card" style="background:var(--green-bg);"><div class="label">总字数</div><div class="value" style="color:var(--green-deep)">${total}</div><div class="sub">字</div></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--purple)"></span>我的作品</div>
+  ${writes.map((w,idx)=>`<div class="list-item" id="w${idx}"><div class="list-head" onclick="$('w${idx}').classList.toggle('open')"><span class="title">${w.title||'未命名'}</span><span class="arrow">›</span></div><div class="list-body">
+    <div style="font-size:11px;color:#9b9b9b;margin-bottom:8px">共${w.entries.length}条，累计${w.entries.reduce((s,e)=>s+(parseInt(e.words)||0),0)}字</div>
+    ${w.entries.map((e,i)=>`<div style="background:var(--card2);padding:8px;border-radius:8px;margin-bottom:4px;font-size:12px"><div style="display:flex;justify-content:space-between"><b>${e.date}</b><span style="color:var(--green-deep)">${e.words}字</span><button class="btn btn-ghost btn-sm" onclick="delEntry(${idx},${i})">删</button></div><div style="color:#9b9b9b;margin-top:4px">${e.content||'—'}</div></div>`).join('')}
+    <div class="input-row" style="margin-top:6px"><input id="we_w${idx}" type="number" placeholder="字数" style="flex:0 0 70px"><input id="we_c${idx}" placeholder="今日内容"><button class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="addEntry(${idx})">＋</button></div>
+    <button class="btn btn-ghost btn-sm" onclick="delWrite(${idx})" style="margin-top:4px;color:#e8839f;border-color:#e8839f">删除作品</button>
+  </div></div>`).join('')}
+  <button class="add-btn" onclick="addWrite()">＋ 添加新作品</button>`;
+}
+function addWrite(){const t=prompt('作品名称：');if(!t)return;writes.push({title:t,entries:[]});DB.save('writes',writes);toast('✅ 已添加');renderContent();}
+function addEntry(idx){const w=$('we_w'+idx).value,c=$('we_c'+idx).value.trim();if(!w){toast('输入字数');return;}writes[idx].entries.push({date:todayStr(),words:w,content:c});DB.save('writes',writes);toast('✅ 已记录');renderContent();}
+function delEntry(idx,i){writes[idx].entries.splice(i,1);DB.save('writes',writes);renderContent();}
+function delWrite(idx){if(!confirm('删除作品？'))return;writes.splice(idx,1);DB.save('writes',writes);renderContent();}
+
+// ===== 4.Todo清单 =====
+function renderTodo(){
+  const undone=todos.filter(t=>!t.done).length;
+  return `
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--orange-bg);"><div class="label">待办</div><div class="value" style="color:var(--orange-deep)">${undone}</div><div class="sub">项</div></div>
+    <div class="stat-card" style="background:var(--green-bg);"><div class="label">已完成</div><div class="value" style="color:var(--green-deep)">${todos.length-undone}</div><div class="sub">项 ✅</div></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--orange)"></span>添加待办</div>
+  <div class="card"><div class="input-row"><input id="todoInput" placeholder="输入待办事项..." onkeydown="if(event.key==='Enter')addTodo()"><button class="btn" style="background:var(--orange);color:#fff" onclick="addTodo()">＋</button></div></div>
+  <div class="section-label"><span class="dot" style="background:var(--orange)"></span>待办列表</div>
+  <div class="card">
+    ${todos.length?todos.map((t,i)=>`<div class="todo-item ${t.done?'done':''}">
+      <div class="todo-check ${t.done?'checked':''}" onclick="toggleTodo(${i})">${t.done?'✓':''}</div>
+      <div class="todo-text">${t.text}</div>
+      <button class="todo-del" onclick="delTodo(${i})">✕</button>
+    </div>`).join(''):'<div style="text-align:center;color:#bbb;padding:16px;font-size:13px">暂无待办，添加一个吧 ✨</div>'}
+  </div>`;
+}
+function addTodo(){const t=$('todoInput').value.trim();if(!t)return;todos.push({text:t,done:false});DB.save('todos',todos);$('todoInput').value='';toast('✅ 已添加');renderContent();}
+function toggleTodo(i){todos[i].done=!todos[i].done;DB.save('todos',todos);renderContent();}
+function delTodo(i){todos.splice(i,1);DB.save('todos',todos);renderContent();}
+
+// ===== 5.账户 =====
+function renderAccount(){
+  const savings=accounts.filter(a=>a.type==='存入').reduce((s,a)=>s+parseFloat(a.amount),0);
+  const expense=accounts.filter(a=>a.type==='支出').reduce((s,a)=>s+parseFloat(a.amount),0);
+  const bal=savings-expense;
+  const month=new Date().toISOString().slice(0,7);
+  const mExp=accounts.filter(a=>a.type==='支出'&&a.date.startsWith(month)).reduce((s,a)=>s+parseFloat(a.amount),0);
+  return `
+  <div class="card" style="background:linear-gradient(135deg,var(--yellow-bg),var(--green-bg));margin-bottom:12px">
+    <div style="font-size:12px;color:var(--yellow-deep)">💰 累计余额</div>
+    <div style="font-size:28px;font-weight:800;color:var(--text);margin:4px 0">¥ ${bal.toFixed(2)}</div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)"><span>本月支出 ¥${mExp.toFixed(0)}</span><span>本月存入 ¥${accounts.filter(a=>a.type==='存入'&&a.date.startsWith(month)).reduce((s,a)=>s+parseFloat(a.amount),0).toFixed(0)}</span></div>
+  </div>
+  <div class="chart-wrap"><h3>📉 近7天开支</h3><canvas id="expenseChart" height="130"></canvas></div>
+  <div class="section-label"><span class="dot" style="background:var(--yellow)"></span>记录收支</div>
+  <div class="card">
+    <div class="input-row"><select id="accType" style="flex:0 0 70px"><option>支出</option><option>存入</option></select><input id="accCat" placeholder="分类"><input id="accAmt" type="number" placeholder="金额" style="flex:0 0 80px"></div>
+    <div class="input-row"><input id="accDate" type="date"><input id="accNote" placeholder="备注"><button class="btn" style="background:var(--yellow-deep);color:#fff" onclick="addAcc()">记录</button></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--yellow)"></span>复盘</div>
+  <div class="card"><div class="review-box" style="background:var(--yellow-bg);color:var(--yellow-deep)"><div class="t">开支复盘</div>${accounts.length?getAccReview():'记录后自动汇总 📊'}</div></div>
+  <div class="section-label"><span class="dot" style="background:var(--yellow)"></span>收支明细</div>
+  <div class="card" style="padding:8px;overflow-x:auto"><table>
+    <thead><tr><th>日期</th><th>类型</th><th>分类</th><th>金额</th></tr></thead>
+    <tbody>${accounts.slice().reverse().slice(0,20).map(a=>`<tr><td>${a.date.slice(5)}</td><td><span class="badge" style="background:${a.type==='存入'?'var(--green-bg)':'var(--pink-bg)'};color:${a.type==='存入'?'var(--green-deep)':'var(--pink-deep)'}">${a.type}</span></td><td>${a.cat||'—'}</td><td>${a.type==='存入'?'+':'-'}${a.amount}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:#bbb;padding:16px">暂无记录</td></tr>'}</tbody>
+  </table></div>`;
+}
+function addAcc(){
+  const date=$('accDate').value||todayStr(),type=$('accType').value,cat=$('accCat').value.trim(),amount=$('accAmt').value,note=$('accNote').value.trim();
+  if(!amount){toast('输入金额');return;}
+  accounts.push({date,type,cat,amount,note});DB.save('accounts',accounts);
+  $('accCat').value='';$('accAmt').value='';$('accNote').value='';toast('✅ 已记录');renderContent();
+}
+function getAccReview(){
+  const exp=accounts.filter(a=>a.type==='支出');const cat={};exp.forEach(a=>cat[a.cat||'其他']=(cat[a.cat||'其他']||0)+parseFloat(a.amount));
+  const total=exp.reduce((s,a)=>s+parseFloat(a.amount),0);
+  const sorted=Object.entries(cat).sort((a,b)=>b[1]-a[1]);
+  return `总支出<b>¥${total.toFixed(0)}</b>，日均<b>¥${(total/30).toFixed(1)}</b><br>TOP3：${sorted.slice(0,3).map((c,i)=>`${i+1}.${c[0]}¥${c[1].toFixed(0)}`).join('，')}<br>💡关注占比最高的类别`;
+}
+function initAccChart(){
+  const ctx=$('expenseChart');if(!ctx)return;
+  const data=[],labels=[];
+  for(let i=6;i>=0;i--){const d=new Date(Date.now()-i*86400000).toISOString().slice(0,10);labels.push(d.slice(5));data.push(accounts.filter(a=>a.type==='支出'&&a.date===d).reduce((s,a)=>s+parseFloat(a.amount),0));}
+  new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'#e8d488',borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},x:{grid:{display:false},ticks:{color:'#9b9b9b'}}}}});
+}
+
+// ===== 6.英语学习 =====
+const wordPool=[
+  {w:'accomplish',m:'v.完成'},{w:'beneath',m:'prep.在下方'},{w:'circumstance',m:'n.情况'},{w:'diligent',m:'adj.勤奋的'},{w:'essential',m:'adj.必要的'},
+  {w:'frequent',m:'adj.频繁的'},{w:'genuine',m:'adj.真诚的'},{w:'hesitate',m:'v.犹豫'},{w:'influence',m:'n.影响'},{w:'judgment',m:'n.判断'},
+  {w:'knowledge',m:'n.知识'},{w:'maintain',m:'v.维持'},{w:'obstacle',m:'n.障碍'},{w:'perspective',m:'n.视角'},{w:'recognize',m:'v.认出'},
+  {w:'sufficient',m:'adj.足够的'},{w:'tend',m:'v.倾向'},{w:'unique',m:'adj.独特的'},{w:'vital',m:'adj.至关的'},{w:'wealth',m:'n.财富'},
+  {w:'challenge',m:'n.挑战'},{w:'determine',m:'v.决定'},{w:'establish',m:'v.建立'},{w:'fundamental',m:'adj.基本的'},{w:'benefit',m:'n.益处'},
+  {w:'absolute',m:'adj.绝对的'},{w:'limitation',m:'n.限制'},{w:'negotiate',m:'v.谈判'},{w:'qualify',m:'v.使合格'},{w:'yield',m:'v.产出'},
+];
+const articles=[
+  {t:'Pursuit of Excellence',text:'To <span class="hl">accomplish</span> our goals, we must be <span class="hl">diligent</span> and <span class="hl">maintain</span> a <span class="hl">genuine</span> passion. Every <span class="hl">challenge</span> is an <span class="hl">obstacle</span> we overcome. It is <span class="hl">essential</span> to <span class="hl">determine</span> our direction. With <span class="hl">sufficient</span> effort, we <span class="hl">yield</span> positive results.'},
+  {t:'Building Knowledge',text:'<span class="hl">Beneath</span> every success lies <span class="hl">frequent</span> effort. The <span class="hl">wealthy</span> <span class="hl">recognize</span> opportunity. From a broader <span class="hl">perspective</span>, <span class="hl">judgment</span> improves. Your <span class="hl">unique</span> qualities <span class="hl">qualify</span> you for greatness. <span class="hl">Knowledge</span> removes <span class="hl">limitation</span>.'},
+];
+let todayWords=[],speechRate=1,isPlaying=false;
+function renderEnglish(){
+  const dayIdx=Math.floor(Date.now()/86400000);
+  todayWords=[];for(let i=0;i<30;i++)todayWords.push(wordPool[(dayIdx*30+i)%wordPool.length]);
+  const article=articles[dayIdx%articles.length];
+  return `
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--teal-bg);"><div class="label">今日单词</div><div class="value" style="color:var(--teal-deep)">30</div><div class="sub">已背${engLog.find(e=>e.date===todayStr())?30:0}</div></div>
+    <div class="stat-card" style="background:var(--green-bg);"><div class="label">累计</div><div class="value" style="color:var(--green-deep)">${engLog.length*30}</div><div class="sub">词</div></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--teal)"></span>📖 今日30词（点击朗读）</div>
+  <div class="card">${todayWords.map((w,i)=>`<div class="word-chip" onclick="speakWord(${i})"><span class="w">${w.w}</span><span class="m">${w.m}</span></div>`).join('')}</div>
+  <div class="section-label"><span class="dot" style="background:var(--teal)"></span>📰 含词文章</div>
+  <div class="card">
+    <div style="background:var(--card2);border-radius:12px;padding:14px;font-size:13px;line-height:1.8;border-left:3px solid var(--teal)">
+      <div style="font-weight:700;color:var(--teal-deep);margin-bottom:6px">${article.t}</div>
+      <div id="artText">${article.text}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;background:var(--teal-bg);border-radius:10px;padding:8px 12px">
+      <button id="playBtn" onclick="togglePlay()" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--teal);color:#fff;font-size:14px;cursor:pointer">▶</button>
+      <div style="flex:1;font-size:11px;color:var(--teal-deep)" id="playStatus">点击朗读全文</div>
+      <button onclick="toggleSpeed()" style="background:#fff;border:1px solid #eee;border-radius:8px;font-size:11px;cursor:pointer;padding:4px 8px" id="speedBtn">${speechRate}x</button>
+    </div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--teal)"></span>学习记录</div>
+  <div class="card">
+    ${engLog.slice(-5).map(e=>`<div style="padding:4px 0;border-bottom:1px solid #f5f3f0;font-size:12px">📅 ${e.date} ✅</div>`).join('')||'<div style="color:#bbb;font-size:12px">每天打卡 📝</div>'}
+    <button class="btn btn-green btn-sm" style="margin-top:8px" onclick="markEng()">✅ 今日打卡</button>
+  </div>`;
+}
+function speakText(t,o={}){
+  if(!t||!t.trim())return;
+  // 方案1：浏览器原生语音合成
+  if('speechSynthesis' in window){
+    try{
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(t);
+      u.lang=o.lang||'en-US';u.rate=o.rate||speechRate;u.pitch=1;u.volume=1;
+      if(o.onend)u.onend=o.onend;
+      if(o.onerror)u.onerror=o.onerror;
+      // 延迟一点确保 voices 已加载
+      window.speechSynthesis.speak(u);
+      return;
+    }catch(e){console.log('speechSynthesis failed',e);}
+  }
+  // 方案2：用 Web Audio API 生成提示音（兜底，表示已触发但无 TTS）
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.value=440;gain.gain.setValueAtTime(0.1,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+    osc.start();osc.stop(ctx.currentTime+0.3);
+    toast('⚠️ 当前浏览器无英语TTS引擎，建议用系统浏览器打开');
+    if(o.onend)setTimeout(o.onend,400);
+  }catch(e){toast('⚠️ 音频不可用');}
+}
+function speakWord(i){
+  const w=todayWords[i];
+  speakText(w.w,{lang:'en-US'});
+  toast('🔊 '+w.w+' - '+w.m);
+}
+function togglePlay(){
+  if(isPlaying){
+    if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    isPlaying=false;$('playBtn').textContent='▶';$('playStatus').textContent='点击朗读';return;
+  }
+  const text=$('artText').innerText;
+  if(!text){toast('无内容');return;}
+  isPlaying=true;$('playBtn').textContent='⏸';$('playStatus').textContent='朗读中...';
+  speakText(text,{lang:'en-US',onend:()=>{isPlaying=false;$('playBtn').textContent='▶';$('playStatus').textContent='朗读完成 ✓';},onerror:()=>{
+    isPlaying=false;$('playBtn').textContent='▶';$('playStatus').textContent='⚠️ 无TTS引擎，建议换浏览器';
+  }});
+}
+function toggleSpeed(){const s=[0.8,1,1.2,1.5];speechRate=s[(s.indexOf(speechRate)+1)%s.length];$('speedBtn').textContent=speechRate+'x';if(isPlaying){window.speechSynthesis.cancel();setTimeout(togglePlay,100);}}
+function markEng(){if(engLog.find(e=>e.date===todayStr())){toast('今日已打卡');return;}engLog.push({date:todayStr()});DB.save('engLog',engLog);toast('✅ +30词');renderContent();}
+function initEnglishAudio(){} // 占位
+
+// ===== 7.小说书架 =====
+const bookColors=['#f8a5c2','#7bc99e','#8db4d6','#f0b890','#b8a4d4','#e8d488','#9bcfc4','#c4c4c4'];
+function renderBooks(){
+  const totalW=books.reduce((s,b)=>s+Math.round((b.content||'').length/10000),0);
+  return `
+  <div class="stat-grid">
+    <div class="stat-card" style="background:var(--gray-bg);"><div class="label">藏书</div><div class="value" style="color:var(--gray-deep)">${books.length}</div><div class="sub">本</div></div>
+    <div class="stat-card" style="background:var(--green-bg);"><div class="label">总字数</div><div class="value" style="color:var(--green-deep)">${totalW}</div><div class="sub">万字</div></div>
+  </div>
+  <div class="section-label"><span class="dot" style="background:var(--gray)"></span>📥 导入TXT</div>
+  <label class="add-btn" style="display:block;text-align:center">＋ 选择TXT文件导入<input type="file" accept=".txt" multiple style="display:none" onchange="importTXT(event)"></label>
+  <div class="section-label"><span class="dot" style="background:var(--gray)"></span>📖 书架</div>
+  ${books.map((b,i)=>`<div class="list-item" id="bk${i}"><div class="list-head" onclick="$('bk${i}').classList.toggle('open')">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:48px;border-radius:6px;background:linear-gradient(135deg,${b.color},${b.color}99);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px">${(b.title||'?')[0]}</div>
+    <div><div style="font-size:14px;font-weight:600">${b.title||'未命名'}</div><div style="font-size:11px;color:#9b9b9b">${b.author||'未知'} · ${Math.round((b.content||'').length/10000*10)/10}万字</div></div></div>
+    <span class="arrow">›</span></div><div class="list-body">
+    <div class="input-row"><input id="bk_t${i}" value="${(b.title||'').replace(/"/g,'&quot;')}" placeholder="书名"><input id="bk_a${i}" value="${(b.author||'').replace(/"/g,'&quot;')}" placeholder="作者" style="flex:0 0 80px"><button class="btn btn-sm" style="background:var(--gray-deep);color:#fff" onclick="saveBook(${i})">保存</button></div>
+    <div style="background:var(--card2);border-radius:10px;padding:12px;max-height:300px;overflow-y:auto;font-size:13px;line-height:1.8;white-space:pre-wrap">${(b.content||'').slice(0,3000)}${(b.content||'').length>3000?'\n\n...(仅预览)':''}</div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="btn btn-ghost btn-sm" onclick="exportBook(${i})">📥导出</button>
+      <button class="btn btn-ghost btn-sm" onclick="openWithOther(${i})">📤用其他软件打开</button>
+      <button class="btn btn-ghost btn-sm" onclick="delBook(${i})" style="color:#e8839f;border-color:#e8839f">删除</button>
+    </div>
+  </div></div>`).join('')||'<div style="text-align:center;color:#bbb;padding:30px;font-size:13px">书架空空 📚<br>点击上方导入TXT</div>'}`;
+}
+function importTXT(e){
+  const files=Array.from(e.target.files);if(!files.length)return;
+  let done=0;
+  files.forEach(f=>{const r=new FileReader();r.onload=ev=>{books.push({title:f.name.replace(/\.txt$/i,''),author:'',content:ev.target.result,date:todayStr(),color:bookColors[books.length%bookColors.length]});DB.save('books',books);done++;if(done===files.length){toast(`✅ 导入${done}本`);renderContent();}};r.readAsText(f,'UTF-8');});
+  e.target.value='';
+}
+function saveBook(i){books[i].title=$('bk_t'+i).value.trim()||'未命名';books[i].author=$('bk_a'+i).value.trim();DB.save('books',books);toast('✅ 已保存');renderContent();}
+function exportBook(i){const b=books[i];const blob=new Blob([b.content||''],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(b.title||'book')+'.txt';a.click();toast('✅ 已导出');}
+function openWithOther(i){
+  const b=books[i];if(!b||!b.content){toast('无内容');return;}
+  try{
+    const blob=new Blob([b.content],{type:'text/plain;charset=utf-8'});
+    const file=new File([blob],(b.title||'book')+'.txt',{type:'text/plain'});
+    // 优先尝试 Web Share API（会调出系统分享菜单，可选择其他App打开）
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:b.title||'小说'}).catch(()=>{});
+    }else{
+      // 不支持分享则下载，用户手动用其他软件打开
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(b.title||'book')+'.txt';a.click();
+      toast('已下载，请用文件管理器选择其他软件打开');
+    }
+  }catch(e){toast('分享不可用，已下载');}
+}
+function delBook(i){if(!confirm('删除？'))return;books.splice(i,1);DB.save('books',books);renderContent();}
+
+// ===== 更新面板 =====
+function toggleUpdate(){$('updatePanel').classList.toggle('show');renderReq();}
+function submitUpdate(){const t=$('updateInput').value.trim();if(!t){toast('输入需求');return;}reqHistory.unshift({date:new Date().toLocaleString('zh-CN'),text:t,status:'已提交'});DB.save('reqHistory',reqHistory);$('updateInput').value='';toast('✅ 已提交');renderReq();}
+function renderReq(){$('reqHistory').innerHTML=reqHistory.map(r=>`<div style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--pink)"><div style="font-size:10px;color:#9b9b9b">📅 ${r.date}</div><div style="font-size:13px;margin:4px 0">${r.text.replace(/\n/g,'<br>')}</div><div style="font-size:11px;color:var(--green-deep)">${r.status}</div></div>`).join('')||'<div style="color:#bbb;text-align:center;padding:16px">暂无历史</div>';}
+function downloadPage(){const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='工作台_'+todayStr()+'.html';a.click();toast('✅ 已下载');}
+
+// ===== AI交流 =====
+function toggleAI(){$('aiPanel').classList.toggle('show');}
+function sendAI(){const inp=$('aiInput');const m=inp.value.trim();if(!m)return;const ms=$('aiMessages');ms.innerHTML+=`<div class="msg user"><div class="bubble">${m}</div></div>`;inp.value='';ms.scrollTop=ms.scrollHeight;setTimeout(()=>{const r={diet:'饮食建议：控制日热量1500-1800千卡，多蛋白蔬菜 🥗',study:'公考建议：优先资料分析+判断推理，每日2-3h 📚',write:'写作建议：每天固定时段，先完成再完美 ✍️',acc:'理财：50-30-20法则，记账掌控支出 💰',eng:'口语：每天跟读15分钟+造句+录音纠音 🌟'};let reply='收到！可聊饮食/学习/写作/账户/英语，请问具体哪方面？';if(/饮|食|减|重/.test(m))reply=r.diet;else if(/学|考|申论/.test(m))reply=r.study;else if(/写|作/.test(m))reply=r.write;else if(/钱|账|开支/.test(m))reply=r.acc;else if(/英语|口语/.test(m))reply=r.eng;ms.innerHTML+=`<div class="msg bot"><div class="bubble">${reply}</div></div>`;ms.scrollTop=ms.scrollHeight;},500);}
+
+// ===== 一键打包下载所有数据 =====
+async function downloadAllData(){
+  toast('📦 打包中...');
+  const allData={diet,bodyData,study,docWriting,docInsp,docStore,writes,todos,accounts,engLog,books,reqHistory,exportDate:new Date().toLocaleString('zh-CN')};
+  try{
+    if(typeof JSZip==='undefined'){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+    const zip=new JSZip();
+    // JSON 全量数据
+    zip.file('全部数据.json',JSON.stringify(allData,null,2));
+    // 各模块单独CSV
+    zip.file('饮食记录.csv',toCSV(diet,['date','type','food','cal','w']));
+    zip.file('身体数据.csv',toCSV(bodyData,['date','chest','waist','hip','thigh','arm','fat']));
+    zip.file('学习记录.csv',toCSV(study,['date','subject','time','content']));
+    zip.file('收支记录.csv',toCSV(accounts,['date','type','cat','amount','note']));
+    zip.file('待办事项.csv',toCSV(todos.map(t=>({text:t.text,done:t.done?'是':'否'})),['text','done']));
+    zip.file('语句灵感.txt',docInsp.map(s=>s.text).join('\n\n'));
+    zip.file('公文存储.txt',docStore.map(d=>`《${d.title}》\n${d.content}`).join('\n\n---\n\n'));
+    // 小说书架每本导出
+    books.forEach(b=>zip.file('小说/'+(b.title||'未命名')+'.txt',b.content||''));
+    // 页面本体
+    const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    zip.file('工作台页面.html',html);
+    // 说明
+    zip.file('README.txt',`工作台数据备份\n导出时间：${allData.exportDate}\n\n包含：\n- 全部数据.json（完整数据，可恢复）\n- 各模块CSV/TXT（可Excel打开）\n- 小说/（小说书架所有TXT）\n- 工作台页面.html（页面本体）\n\n恢复方法：\n1. 打开「工作台页面.html」\n2. 或在新手机打开工作台链接\n3. 用「全部数据.json」手动导入（未来版本支持）`);
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='工作台备份_'+todayStr()+'.zip';a.click();URL.revokeObjectURL(a.href);
+    toast('✅ 已打包下载全部数据');
+  }catch(e){toast('打包失败：'+e.message);}
+}
+function toCSV(arr,cols){
+  if(!arr.length)return '';
+  const header=cols.join(',');
+  const rows=arr.map(o=>cols.map(c=>{const v=o[c]||'';return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(','));
+  return header+'\n'+rows.join('\n');
+}
+
+// ====== 数据管理 ======
+function getAllData(){
+  return {
+    diet,bodyData,study,docWriting,docInsp,docStore,writes,todos,accounts,engLog,books,reqHistory,
+    _version:'1.0', _exportDate:new Date().toLocaleString('zh-CN')
+  };
+}
+function loadDataFromObj(d){
+  const keys=['diet','bodyData','study','docWriting','docInsp','docStore','writes','todos','accounts','engLog','books','reqHistory'];
+  let count=0;
+  keys.forEach(k=>{ if(d[k]!==undefined){ window[k]=d[k]; DB.save(k,d[k]); count++; } });
+  return count;
+}
+function toggleDataPanel(){
+  $('dataPanel').classList.toggle('show');
+  if($('dataPanel').classList.contains('show')) renderDataOverview();
+}
+function renderDataOverview(){
+  const d=getAllData();
+  const items=[
+    ['饮食记录',d.diet.length],['身体数据',d.bodyData.length],['公考学习',d.study.length],
+    ['公文存储',d.docStore.length],['语句灵感',d.docInsp.length],['写作作品',d.writes.length],
+    ['待办事项',d.todos.length],['收支记录',d.accounts.length],['英语打卡',d.engLog.length],
+    ['小说藏书',d.books.length]
+  ];
+  const total=items.reduce((s,x)=>s+x[1],0);
+  $('dataOverview').innerHTML=`共 <b style="font-size:16px;color:var(--blue-deep)">${total}</b> 条数据<br>`+
+    items.map(([n,c])=>`<span style="display:inline-block;background:#fff;padding:3px 10px;border-radius:8px;margin:3px 2px;font-size:11px">${n} <b>${c}</b></span>`).join('');
+}
+
+function exportBackup(){
+  const d=getAllData();
+  const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='工作台数据备份_'+todayStr()+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  toast('✅ 备份已导出');
+}
+function importBackup(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      const count=loadDataFromObj(d);
+      $('importResult').innerHTML=`<div style="background:var(--green-bg);color:var(--green-deep);padding:10px;border-radius:10px;font-size:13px">✅ 导入成功！恢复 ${count} 个模块数据<br>导出时间：${d._exportDate||'未知'}<br>请刷新页面查看数据</div>`;
+      toast('✅ 导入成功，正在刷新...');
+      setTimeout(()=>location.reload(),1500);
+    }catch(err){
+      $('importResult').innerHTML=`<div style="background:var(--pink-bg);color:var(--pink-deep);padding:10px;border-radius:10px;font-size:13px">❌ 导入失败：文件格式错误</div>`;
+      toast('❌ 文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// 自动备份（每次保存数据时存一份带时间戳的副本）
+function autoBackup(){
+  try{
+    const d=getAllData();
+    d._autoBackup=true;
+    localStorage.setItem('_autoBackup',JSON.stringify(d));
+    localStorage.setItem('_autoBackupTime',new Date().toLocaleString('zh-CN'));
+  }catch(e){}
+}
+function checkAutoBackup(){
+  const t=localStorage.getItem('_autoBackupTime');
+  $('autoBackupTime').textContent=t||'无自动备份记录';
+  if(t) toast('✅ 自动备份存在：'+t);
+  else toast('暂无自动备份');
+}
+// 覆盖原 DB.save，加入自动备份
+const _origSave=DB.save;
+DB.save=function(k,v){ _origSave(k,v); autoBackup(); };
+
+// ===== 初始化 =====
+const now=new Date();
+$('sideDate').textContent=`${now.getMonth()+1}月${now.getDate()}日`;
+// 初始化日期（renderContent 后调用，确保元素已存在）
+function initDates(){
+  ['mealDate','bodyDate','studyDate','accDate'].forEach(id=>{
+    try{$(id).value=todayStr();}catch(e){}
+  });
+}
+
+// 主动清理旧 SW 缓存（防止旧 SW 导致页面错乱）
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+}
+if('caches' in window){
+  caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+}
+
+// ===== 数据安全检测 =====
+function checkDataSafety(){
+  // 统计当前数据
+  const counts={
+    '饮食':diet.length,'身体':bodyData.length,'学习':study.length,
+    '公文':docStore.length,'灵感':docInsp.length,'写作':writes.length,
+    '待办':todos.length,'英语':engLog.length,'小说':books.length
+  };
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  
+  // 检查自动备份
+  const autoRaw=localStorage.getItem('_autoBackup');
+  let autoData=null,autoTotal=0;
+  if(autoRaw){
+    try{
+      autoData=JSON.parse(autoRaw);
+      autoTotal=['diet','bodyData','study','docStore','docInsp','writes','todos','engLog','books']
+        .reduce((s,k)=>s+(autoData[k]||[]).length,0);
+    }catch(e){}
+  }
+  
+  // 如果当前数据为0但自动备份有数据 → 自动恢复
+  if(total===0 && autoData && autoTotal>0){
+    console.log('检测到数据丢失，自动备份中有',autoTotal,'条，正在恢复...');
+    loadDataFromObj(autoData);
+    // 重新加载变量
+    diet=DB.load('diet',[]);bodyData=DB.load('bodyData',[]);
+    study=DB.load('study',[]);docWriting=DB.load('docWriting',[]);
+    docInsp=DB.load('docInsp',[]);docStore=DB.load('docStore',[]);
+    writes=DB.load('writes',[]);todos=DB.load('todos',[]);
+    accounts=DB.load('accounts',[]);engLog=DB.load('engLog',[]);
+    books=DB.load('books',[]);reqHistory=DB.load('reqHistory',[]);
+    showDataBanner('🔄 检测到数据丢失，已从自动备份恢复 '+autoTotal+' 条数据！',true);
+    return true;
+  }
+  
+  // 如果有数据，显示数据概况
+  if(total>0){
+    showDataBanner(`✅ 数据已加载：${total} 条记录（${Object.entries(counts).filter(([k,v])=>v>0).map(([k,v])=>`${k}${v}`).join(' · ')}）`,true);
+  }
+  return false;
+}
+
+function showDataBanner(msg,autoHide){
+  const b=document.createElement('div');
+  b.style.cssText='position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:linear-gradient(135deg,var(--pink),var(--green));color:#fff;padding:8px 16px;font-size:12px;font-weight:600;text-align:center;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,0.1);';
+  b.textContent=msg;
+  document.body.appendChild(b);
+  if(autoHide){
+    // 把内容区往下推，避免遮挡
+    document.querySelector('.topbar').style.marginTop='36px';
+    setTimeout(()=>{
+      b.style.transition='opacity .5s';
+      b.style.opacity='0';
+      setTimeout(()=>{b.remove();document.querySelector('.topbar').style.marginTop='0';},500);
+    },4000);
+  }
+}
+
+renderNav();switchMod(0);initDates();
+// 数据安全检测（在渲染后执行，确保如果恢复成功则重新渲染）
+if(checkDataSafety()){
+  renderNav();switchMod(curMod);initDates();
+}
+// 恢复侧边栏折叠状态
+if(localStorage.getItem('sidebarCollapsed')==='1'){ collapseSidebar(); }
+</script>
+</body>
+</html>
