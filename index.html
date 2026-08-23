@@ -453,7 +453,7 @@ function renderDiet(){
   </div>
   <!-- 体重趋势（Y轴固定 + 可左右滑动 + 每点显示数值） -->
   <div class="chart-wrap"><h3>📈 体重趋势 <span style="font-size:10px;color:#bbb;font-weight:400">← 左右滑动查看 →</span></h3><div style="display:flex;align-items:flex-start;">
-    <div style="flex:0 0 42px;height:200px;position:relative;overflow:hidden;"><canvas id="weightChartY"></canvas></div>
+    <div style="flex:0 0 48px;height:200px;position:relative;overflow:hidden;"><canvas id="weightChartY"></canvas></div>
     <div id="weightChartScroll" style="flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;"><div id="weightChartInner" style="position:relative;height:200px;"><canvas id="weightChart"></canvas></div></div>
   </div></div>
   <!-- 饮食记录与输入合并为一个板块 -->
@@ -551,31 +551,36 @@ function initDietChart(){
   const dataVals=weights.map(w=>parseFloat(w.w));
   const dsCfg={data:dataVals,borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#7bc99e',pointBorderColor:'#fff',pointBorderWidth:1.5};
   const yScale={min:yMin,max:yMax,grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b',font:{size:10}},border:{display:false}};
-  // 自定义插件：在每个数据点上方绘制体重数值
+  // 自定义插件：在每个数据点上方绘制体重数值（纯文字，无背景框）
   const pointLabelPlugin={id:'pointLabels',afterDatasetsDraw(chart){
     const {ctx}=chart;const meta=chart.getDatasetMeta(0);
     meta.data.forEach((pt,i)=>{
       const v=weights[i].w;const x=pt.x,y=pt.y;
-      ctx.save();ctx.font='600 10px sans-serif';ctx.textAlign='center';
-      const label=v+'kg';const w=ctx.measureText(label).width;
-      // 小圆角背景
-      ctx.fillStyle='rgba(248,165,194,0.85)';ctx.beginPath();
-      const rx=x-w/2-4,ry=y-22,rw=w+8,rh=15,rr=7;
-      ctx.moveTo(rx+rr,ry);ctx.lineTo(rx+rw-rr,ry);ctx.quadraticCurveTo(rx+rw,ry,rx+rw,ry+rr);
-      ctx.lineTo(rx+rw,ry+rh-rr);ctx.quadraticCurveTo(rx+rw,ry+rh,rx+rw-rr,ry+rh);
-      ctx.lineTo(rx+rr,ry+rh);ctx.quadraticCurveTo(rx,ry+rh,rx,ry+rh-rr);
-      ctx.lineTo(rx,ry+rr);ctx.quadraticCurveTo(rx,ry,rx+rr,ry);ctx.fill();
-      ctx.fillStyle='#fff';ctx.fillText(label,x,y-11);ctx.restore();
+      ctx.save();ctx.font='700 11px sans-serif';ctx.textAlign='center';
+      // 文字描边（白色外发光，提高可读性）
+      ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,0.95)';ctx.strokeText(v,x,y-12);
+      // 主体文字
+      ctx.fillStyle='#e8839f';ctx.fillText(v,x,y-12);ctx.restore();
     });
   }};
   // 销毁旧实例
   if(window._dietChartInstance){try{window._dietChartInstance.destroy()}catch(e){}}
   if(window._dietChartYInstance){try{window._dietChartYInstance.destroy()}catch(e){}}
   // 主图表（隐藏 Y 轴，仅显示数据和 X 轴日期）
-  window._dietChartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[dsCfg]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24,bottom:0,left:2,right:8}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'体重: '+c.raw+'kg'}}},scales:{y:{...yScale,grid:{display:false},ticks:{display:false}},x:{grid:{display:false},ticks:{color:'#9b9b9b',font:{size:9},maxRotation:45,minRotation:0,autoSkip:false}}}},plugins:[pointLabelPlugin]});
+  window._dietChartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[dsCfg]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24,bottom:0,left:2,right:8}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'体重: '+c.raw+'kg'}}},scales:{y:{...yScale,grid:{display:false},ticks:{display:false}},x:{grid:{display:false},ticks:{color:'#9b9b9b',font:{size:9},maxRotation:45,minRotation:0,autoSkip:false},afterFit:(scale)=>{scale.height=28;}}}},plugins:[pointLabelPlugin]});
   // 左侧固定 Y 轴图表（只画 Y 轴刻度，不画数据/网格/X轴标签）
   if(yCtx){
-    window._dietChartYInstance=new Chart(yCtx,{type:'line',data:{labels,datasets:[{data:dataVals}]},options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:24,bottom:0,left:0,right:0}},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{y:{...yScale,grid:{display:false},ticks:{color:'#9b9b9b',font:{size:10},padding:4}},x:{grid:{display:false},ticks:{display:false},afterDataToPixel:()=>{}}}},plugins:[{id:'hideAll',beforeDatasetsDraw(){return false;}}]});
+    window._dietChartYInstance=new Chart(yCtx,{type:'line',data:{labels,datasets:[{data:dataVals}]},options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:24,bottom:0,left:0,right:0}},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{y:{...yScale,position:'left',grid:{display:false},ticks:{display:false},afterFit:(scale)=>{scale.width=0;}},x:{grid:{display:false},ticks:{display:false},afterFit:(scale)=>{scale.height=28;},afterDataToPixel:()=>{}}}},plugins:[{id:'hideAll',beforeDatasetsDraw(){return false;}},{id:'drawYTicks',afterDraw(chart){
+      const c=chart.ctx;const yScale=chart.scales.y;
+      const w=chart.width,h=chart.height;
+      c.save();c.font='10px sans-serif';c.fillStyle='#9b9b9b';c.textAlign='right';c.textBaseline='middle';
+      const ticks=yScale.ticks;
+      ticks.forEach(t=>{
+        const py=yScale.getPixelForValue(t.value);
+        if(py>0&&py<h){c.fillText(t.value.toString(),w-2,py);}
+      });
+      c.restore();
+    }}]});
   }
   // 身体围度
   const bg=$('bodyGrid');
