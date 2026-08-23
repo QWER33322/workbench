@@ -451,8 +451,11 @@ function renderDiet(){
       <div class="sub">${remain==='—'?'开始记录吧':remain>0?`还需减 ${remain}kg`:`已达标 🎉`}</div>
     </div>
   </div>
-  <!-- 体重趋势（可左右滑动） -->
-  <div class="chart-wrap"><h3>📈 体重趋势 <span style="font-size:10px;color:#bbb;font-weight:400">← 左右滑动查看 →</span></h3><div id="weightChartScroll" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;"><div id="weightChartInner" style="position:relative;height:180px;"><canvas id="weightChart"></canvas></div></div></div>
+  <!-- 体重趋势（Y轴固定 + 可左右滑动 + 每点显示数值） -->
+  <div class="chart-wrap"><h3>📈 体重趋势 <span style="font-size:10px;color:#bbb;font-weight:400">← 左右滑动查看 →</span></h3><div style="display:flex;align-items:flex-start;">
+    <div style="flex:0 0 42px;height:200px;position:relative;overflow:hidden;"><canvas id="weightChartY"></canvas></div>
+    <div id="weightChartScroll" style="flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;"><div id="weightChartInner" style="position:relative;height:200px;"><canvas id="weightChart"></canvas></div></div>
+  </div></div>
   <!-- 饮食记录与输入合并为一个板块 -->
   <div class="section-label"><span class="dot" style="background:var(--pink)"></span>🍱 饮食记录</div>
   <div class="card">
@@ -521,25 +524,59 @@ function getDietReview(){
 }
 function initDietChart(){
   const ctx=$('weightChart');if(!ctx)return;
+  const yCtx=$('weightChartY');
   const weights=diet.filter(d=>d.w).sort((a,b)=>a.date.localeCompare(b.date));
   if(!weights.length)return;
-  // 根据数据点数量动态计算图表宽度：每点至少 40px，超过一定数量时启用横向滚动
-  const minPerPoint=42;
+  // 根据数据点数量动态计算图表宽度：每点至少 44px，超过一定数量时启用横向滚动
+  const minPerPoint=44;
   const scrollWrap=$('weightChartScroll');
   const innerWrap=$('weightChartInner');
-  const parentW=scrollWrap.parentElement.clientWidth-32; // 减去 chart-wrap padding
+  const parentW=scrollWrap.clientWidth||300;
   const needW=weights.length*minPerPoint;
-  if(needW>parentW){
+  const isScroll=needW>parentW;
+  if(isScroll){
     innerWrap.style.width=needW+'px';
-    innerWrap.style.height='180px';
-    scrollWrap.style.height='216px';
   }else{
     innerWrap.style.width='100%';
-    innerWrap.style.height='180px';
-    scrollWrap.style.height='200px';
   }
+  innerWrap.style.height='200px';
+  // 计算 Y 轴范围（两个图表共享）
+  const wVals=weights.map(w=>parseFloat(w.w));
+  const wMin=Math.min(...wVals),wMax=Math.max(...wVals);
+  const pad=(wMax-wMin)*0.2||2;
+  const yMin=Math.floor((wMin-pad)*10)/10;
+  const yMax=Math.ceil((wMax+pad)*10)/10;
+  // 共享配置
+  const labels=weights.map(w=>w.date.slice(5));
+  const dataVals=weights.map(w=>parseFloat(w.w));
+  const dsCfg={data:dataVals,borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#7bc99e',pointBorderColor:'#fff',pointBorderWidth:1.5};
+  const yScale={min:yMin,max:yMax,grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b',font:{size:10}},border:{display:false}};
+  // 自定义插件：在每个数据点上方绘制体重数值
+  const pointLabelPlugin={id:'pointLabels',afterDatasetsDraw(chart){
+    const {ctx}=chart;const meta=chart.getDatasetMeta(0);
+    meta.data.forEach((pt,i)=>{
+      const v=weights[i].w;const x=pt.x,y=pt.y;
+      ctx.save();ctx.font='600 10px sans-serif';ctx.textAlign='center';
+      const label=v+'kg';const w=ctx.measureText(label).width;
+      // 小圆角背景
+      ctx.fillStyle='rgba(248,165,194,0.85)';ctx.beginPath();
+      const rx=x-w/2-4,ry=y-22,rw=w+8,rh=15,rr=7;
+      ctx.moveTo(rx+rr,ry);ctx.lineTo(rx+rw-rr,ry);ctx.quadraticCurveTo(rx+rw,ry,rx+rw,ry+rr);
+      ctx.lineTo(rx+rw,ry+rh-rr);ctx.quadraticCurveTo(rx+rw,ry+rh,rx+rw-rr,ry+rh);
+      ctx.lineTo(rx+rr,ry+rh);ctx.quadraticCurveTo(rx,ry+rh,rx,ry+rh-rr);
+      ctx.lineTo(rx,ry+rr);ctx.quadraticCurveTo(rx,ry,rx+rr,ry);ctx.fill();
+      ctx.fillStyle='#fff';ctx.fillText(label,x,y-11);ctx.restore();
+    });
+  }};
+  // 销毁旧实例
   if(window._dietChartInstance){try{window._dietChartInstance.destroy()}catch(e){}}
-  window._dietChartInstance=new Chart(ctx,{type:'line',data:{labels:weights.map(w=>w.date.slice(5)),datasets:[{data:weights.map(w=>parseFloat(w.w)),borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#7bc99e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},x:{grid:{display:false},ticks:{color:'#9b9b9b',maxRotation:45,minRotation:0,autoSkip:false}}}}});
+  if(window._dietChartYInstance){try{window._dietChartYInstance.destroy()}catch(e){}}
+  // 主图表（隐藏 Y 轴，仅显示数据和 X 轴日期）
+  window._dietChartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[dsCfg]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24,bottom:0,left:2,right:8}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'体重: '+c.raw+'kg'}}},scales:{y:{...yScale,grid:{display:false},ticks:{display:false}},x:{grid:{display:false},ticks:{color:'#9b9b9b',font:{size:9},maxRotation:45,minRotation:0,autoSkip:false}}}},plugins:[pointLabelPlugin]});
+  // 左侧固定 Y 轴图表（只画 Y 轴刻度，不画数据/网格/X轴标签）
+  if(yCtx){
+    window._dietChartYInstance=new Chart(yCtx,{type:'line',data:{labels,datasets:[{data:dataVals}]},options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:24,bottom:0,left:0,right:0}},plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{y:{...yScale,grid:{display:false},ticks:{color:'#9b9b9b',font:{size:10},padding:4}},x:{grid:{display:false},ticks:{display:false},afterDataToPixel:()=>{}}}},plugins:[{id:'hideAll',beforeDatasetsDraw(){return false;}}]});
+  }
   // 身体围度
   const bg=$('bodyGrid');
   if(bg&&bodyData.length){
