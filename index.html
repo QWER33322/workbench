@@ -451,8 +451,8 @@ function renderDiet(){
       <div class="sub">${remain==='—'?'开始记录吧':remain>0?`还需减 ${remain}kg`:`已达标 🎉`}</div>
     </div>
   </div>
-  <!-- 体重趋势 -->
-  <div class="chart-wrap"><h3>📈 体重趋势</h3><canvas id="weightChart" height="150"></canvas></div>
+  <!-- 体重趋势（可左右滑动） -->
+  <div class="chart-wrap"><h3>📈 体重趋势 <span style="font-size:10px;color:#bbb;font-weight:400">← 左右滑动查看 →</span></h3><div id="weightChartScroll" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;"><div id="weightChartInner" style="position:relative;height:180px;"><canvas id="weightChart"></canvas></div></div></div>
   <!-- 饮食记录与输入合并为一个板块 -->
   <div class="section-label"><span class="dot" style="background:var(--pink)"></span>🍱 饮食记录</div>
   <div class="card">
@@ -467,7 +467,7 @@ function renderDiet(){
     <div style="margin-top:10px;overflow-x:auto">
       <table>
         <thead><tr><th>日期</th><th>餐</th><th>食物</th><th>热量</th><th>体重</th></tr></thead>
-        <tbody>${diet.map(d=>`<tr><td>${d.date.slice(5)}</td><td>${d.type}</td><td>${d.food||'—'}</td><td>${d.cal||'—'}</td><td>${d.w||'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">暂无记录</td></tr>'}</tbody>
+        <tbody>${[...diet].sort((a,b)=>b.date.localeCompare(a.date)).map(d=>`<tr><td>${d.date.slice(5)}</td><td>${d.type}</td><td>${d.food||'—'}</td><td>${d.cal||'—'}</td><td>${d.w||'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">暂无记录</td></tr>'}</tbody>
       </table>
     </div>
   </div>
@@ -523,7 +523,23 @@ function initDietChart(){
   const ctx=$('weightChart');if(!ctx)return;
   const weights=diet.filter(d=>d.w).sort((a,b)=>a.date.localeCompare(b.date));
   if(!weights.length)return;
-  new Chart(ctx,{type:'line',data:{labels:weights.map(w=>w.date.slice(5)),datasets:[{data:weights.map(w=>parseFloat(w.w)),borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#7bc99e'}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},x:{grid:{display:false},ticks:{color:'#9b9b9b'}}}}});
+  // 根据数据点数量动态计算图表宽度：每点至少 40px，超过一定数量时启用横向滚动
+  const minPerPoint=42;
+  const scrollWrap=$('weightChartScroll');
+  const innerWrap=$('weightChartInner');
+  const parentW=scrollWrap.parentElement.clientWidth-32; // 减去 chart-wrap padding
+  const needW=weights.length*minPerPoint;
+  if(needW>parentW){
+    innerWrap.style.width=needW+'px';
+    innerWrap.style.height='180px';
+    scrollWrap.style.height='216px';
+  }else{
+    innerWrap.style.width='100%';
+    innerWrap.style.height='180px';
+    scrollWrap.style.height='200px';
+  }
+  if(window._dietChartInstance){try{window._dietChartInstance.destroy()}catch(e){}}
+  window._dietChartInstance=new Chart(ctx,{type:'line',data:{labels:weights.map(w=>w.date.slice(5)),datasets:[{data:weights.map(w=>parseFloat(w.w)),borderColor:'#f8a5c2',backgroundColor:'rgba(248,165,194,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#7bc99e'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'#f0ede8'},ticks:{color:'#9b9b9b'}},x:{grid:{display:false},ticks:{color:'#9b9b9b',maxRotation:45,minRotation:0,autoSkip:false}}}}});
   // 身体围度
   const bg=$('bodyGrid');
   if(bg&&bodyData.length){
