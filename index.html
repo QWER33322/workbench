@@ -173,6 +173,19 @@
   .body-grid .b-label{font-size:10px;color:var(--text2);}
   .body-grid .b-val{font-size:14px;font-weight:700;}
 
+  /* 折叠按钮与分隔线 */
+  .fold-btn{display:block;width:100%;margin-top:10px;padding:9px 0;border:none;border-radius:12px;background:var(--pink-bg);color:var(--pink-deep);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.5px;}
+  .fold-btn:active{transform:scale(0.97);background:#f9d7e3;}
+  .fold-divider{display:flex;align-items:center;gap:10px;font-size:10px;color:#c5bab0;margin:12px 0 8px;font-weight:600;letter-spacing:1px;}
+  .fold-divider::before,.fold-divider::after{content:'';flex:1;height:1px;background:#efe9e3;}
+
+  /* 身体维度历史记录 */
+  .body-log{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--pink-bg);margin-bottom:6px;}
+  .body-log .bl-date{font-size:11px;font-weight:800;color:var(--pink-deep);flex:0 0 40px;}
+  .body-log .bl-items{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+  .btag{font-size:10px;background:#fff;border-radius:8px;padding:3px 7px;color:#8a7f76;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}
+  .log-head{font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 7px;display:flex;align-items:center;gap:5px;}
+
   /* 侧边栏折叠 */
   .sidebar { transition:width .3s ease, transform .3s ease; overflow:hidden; }
   .sidebar.collapsed { width:0; min-width:0; padding:0; border-right:none; }
@@ -433,6 +446,26 @@ function renderDiet(){
     if(weights.length>1){const d=(parseFloat(weights[weights.length-1].w)-parseFloat(weights[weights.length-2].w)).toFixed(1);delta=d<0?`↓${Math.abs(d)}kg`:d>0?`↑${d}kg`:'持平';}
     remain=(parseFloat(weights[weights.length-1].w)-55).toFixed(1);
   }
+  // ===== 饮食记录分组：近7天直接显示，更早折叠 =====
+  const dietSorted=[...diet].sort((a,b)=>b.date.localeCompare(a.date));
+  let dietCut='0000-00-00';
+  if(dietSorted.length){
+    const d=new Date(dietSorted[0].date+'T00:00:00');d.setDate(d.getDate()-6);
+    dietCut=fmtLocal(d);
+  }
+  const dietRecent=dietSorted.filter(d=>d.date>=dietCut);
+  const dietOlder=dietSorted.filter(d=>d.date<dietCut);
+  window._dietOlderCount=dietOlder.length;
+  // ===== 身体维度分组：近5日直接显示，更早折叠 =====
+  const bodySorted=[...bodyData].sort((a,b)=>b.date.localeCompare(a.date));
+  let bodyCut='0000-00-00';
+  if(bodySorted.length){
+    const d=new Date(bodySorted[0].date+'T00:00:00');d.setDate(d.getDate()-4);
+    bodyCut=fmtLocal(d);
+  }
+  const bodyRecent=bodySorted.filter(b=>b.date>=bodyCut);
+  const bodyOlder=bodySorted.filter(b=>b.date<bodyCut);
+  window._bodyOlderCount=bodyOlder.length;
   return `
   <!-- 体重卡片：左当前(可填) 右目标55kg -->
   <div class="stat-grid">
@@ -470,8 +503,16 @@ function renderDiet(){
     <div style="margin-top:10px;overflow-x:auto">
       <table>
         <thead><tr><th>日期</th><th>餐</th><th>食物</th><th>热量</th><th>体重</th></tr></thead>
-        <tbody>${[...diet].sort((a,b)=>b.date.localeCompare(a.date)).map(d=>`<tr><td>${d.date.slice(5)}</td><td>${d.type}</td><td>${d.food||'—'}</td><td>${d.cal||'—'}</td><td>${d.w||'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">暂无记录</td></tr>'}</tbody>
+        <tbody>${dietRecent.map(d=>dietRowHTML(d)).join('')||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">暂无记录</td></tr>'}</tbody>
       </table>
+      ${dietOlder.length?`
+      <div id="dietOlderWrap" style="display:${window._dietExpanded?'':'none'}">
+        <div class="fold-divider">更 早 记 录</div>
+        <table>
+          <tbody>${dietOlder.map(d=>dietRowHTML(d,true)).join('')}</tbody>
+        </table>
+      </div>
+      <button class="fold-btn" id="dietFoldBtn" onclick="toggleDietFold()">${window._dietExpanded?'▴ 收起更早记录':'▾ 展开更早记录 · '+dietOlder.length+' 条'}</button>`:''}
     </div>
   </div>
   <!-- 身体维度 -->
@@ -484,17 +525,48 @@ function renderDiet(){
       <input id="bi_waist" type="number" placeholder="腰围" style="font-size:11px">
       <input id="bi_hip" type="number" placeholder="臀围" style="font-size:11px">
       <input id="bi_thigh" type="number" placeholder="大腿" style="font-size:11px">
+      <input id="bi_calf" type="number" placeholder="小腿" style="font-size:11px">
       <input id="bi_arm" type="number" placeholder="上臂" style="font-size:11px">
-      <input id="bi_fat" type="number" placeholder="体脂%" style="font-size:11px">
+      <input id="bi_fat" type="number" placeholder="体脂%" style="font-size:11px;grid-column:2">
     </div>
     <button class="btn btn-pink" style="width:100%" onclick="addBody()">记录身体数据</button>
+    <div class="log-head">🕘 记录历史 <span style="font-weight:400;font-size:10px">（近5日）</span></div>
+    ${bodyRecent.map(b=>bodyLogHTML(b)).join('')||'<div style="text-align:center;color:#bbb;font-size:12px;padding:10px 0">暂无记录</div>'}
+    ${bodyOlder.length?`
+    <div id="bodyOlderWrap" style="display:${window._bodyExpanded?'':'none'}">
+      <div class="fold-divider">更 早 记 录</div>
+      ${bodyOlder.map(b=>bodyLogHTML(b,true)).join('')}
+    </div>
+    <button class="fold-btn" id="bodyFoldBtn" onclick="toggleBodyFold()">${window._bodyExpanded?'▴ 收起更早记录':'▾ 展开更早记录 · '+bodyOlder.length+' 条'}</button>`:''}
   </div>
   <!-- 复盘 -->
   <div class="section-label"><span class="dot" style="background:var(--pink)"></span>📋 复盘总结</div>
   <div class="card"><div class="review-box" style="background:var(--pink-bg);color:var(--pink-deep)"><div class="t">饮食 & 体重复盘</div><div id="dietReview">${diet.length?getDietReview():'开始记录后自动生成复盘 📝'}</div></div></div>
   `;
 }
-const bodyFields=[{k:'chest',l:'胸围',u:'cm'},{k:'waist',l:'腰围',u:'cm'},{k:'hip',l:'臀围',u:'cm'},{k:'thigh',l:'大腿',u:'cm'},{k:'arm',l:'上臂',u:'cm'},{k:'fat',l:'体脂',u:'%'}];
+const bodyFields=[{k:'chest',l:'胸围',u:'cm'},{k:'waist',l:'腰围',u:'cm'},{k:'hip',l:'臀围',u:'cm'},{k:'thigh',l:'大腿',u:'cm'},{k:'calf',l:'小腿',u:'cm'},{k:'arm',l:'上臂',u:'cm'},{k:'fat',l:'体脂',u:'%'}];
+// 本地日期格式化（避免时区偏移）
+function fmtLocal(d){const m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return d.getFullYear()+'-'+m+'-'+day;}
+// 饮食记录行
+function dietRowHTML(d,old){return `<tr style="${old?'color:#b3aaa1':''}"><td>${d.date.slice(5)}</td><td>${d.type}</td><td>${d.food||'—'}</td><td>${d.cal||'—'}</td><td>${d.w||'—'}</td></tr>`;}
+// 身体维度历史行
+function bodyLogHTML(b,old){
+  const items=bodyFields.filter(f=>b[f.k]).map(f=>`<span class="btag">${f.l} <b>${b[f.k]}</b></span>`).join('');
+  return `<div class="body-log" style="${old?'opacity:.72;':''}"><div class="bl-date">${b.date.slice(5)}</div><div class="bl-items">${items||'<span style="font-size:10px;color:#bbb">无数据</span>'}</div></div>`;
+}
+// 折叠切换（直接操作DOM，不重渲染，保护输入框内容）
+function toggleDietFold(){
+  window._dietExpanded=!window._dietExpanded;
+  const w=document.getElementById('dietOlderWrap'),b=document.getElementById('dietFoldBtn');
+  if(w)w.style.display=window._dietExpanded?'':'none';
+  if(b)b.innerHTML=window._dietExpanded?'▴ 收起更早记录':'▾ 展开更早记录 · '+(window._dietOlderCount||0)+' 条';
+}
+function toggleBodyFold(){
+  window._bodyExpanded=!window._bodyExpanded;
+  const w=document.getElementById('bodyOlderWrap'),b=document.getElementById('bodyFoldBtn');
+  if(w)w.style.display=window._bodyExpanded?'':'none';
+  if(b)b.innerHTML=window._bodyExpanded?'▴ 收起更早记录':'▾ 展开更早记录 · '+(window._bodyOlderCount||0)+' 条';
+}
 function addDiet(){
   const date=$('mealDate').value||todayStr(),type=$('mealType').value,food=$('mealFood').value.trim(),cal=$('mealCal').value;
   if(!food){toast('请输入食物');return;}
@@ -585,11 +657,12 @@ function initDietChart(){
   // 身体围度
   const bg=$('bodyGrid');
   if(bg&&bodyData.length){
-    const last=bodyData[bodyData.length-1],prev=bodyData[bodyData.length-2];
+    const bS=[...bodyData].sort((a,b)=>a.date.localeCompare(b.date));
+    const last=bS[bS.length-1],prev=bS[bS.length-2];
     bg.innerHTML=bodyFields.map(f=>{
       const v=last[f.k]||'—';let d='—';
-      if(last[f.k]&&prev&&prev[f.k])d=(parseFloat(last[f.k])-parseFloat(prev[f.k])).toFixed(1);
-      return `<div class="b-item"><div class="b-label">${f.l}</div><div class="b-val">${v?v+f.u:'—'}</div><div style="font-size:9px;color:#9b9b9b">${d}</div></div>`;
+      if(last[f.k]&&prev&&prev[f.k]){const dv=parseFloat(last[f.k])-parseFloat(prev[f.k]);d=dv<0?`↓${Math.abs(dv).toFixed(1)}`:dv>0?`↑${dv.toFixed(1)}`:'持平';}
+      return `<div class="b-item" style="${f.k==='fat'?'grid-column:2':''}"><div class="b-label">${f.l}</div><div class="b-val">${v?v+f.u:'—'}</div><div style="font-size:9px;color:#9b9b9b">${d}</div></div>`;
     }).join('');
   }else if(bg){bg.innerHTML='<div style="grid-column:1/4;text-align:center;color:#bbb;font-size:12px;padding:8px">暂无围度数据</div>';}
 }
