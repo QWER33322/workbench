@@ -13,7 +13,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="chart.umd.min.js"></script>
+<script>if(typeof Chart==='undefined'){document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');}</script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   :root {
@@ -596,6 +597,7 @@ function getDietReview(){
 }
 function initDietChart(){
   const ctx=$('weightChart');if(!ctx)return;
+  if(typeof Chart==='undefined')return; // 图表库未加载时跳过，数据不受影响
   const yCtx=$('weightChartY');
   const weights=diet.filter(d=>d.w).sort((a,b)=>a.date.localeCompare(b.date));
   if(!weights.length)return;
@@ -712,6 +714,7 @@ function addStudy(){
   $('studyTime').value='';$('studyContent').value='';toast('✅ 已记录');renderContent();
 }
 function initStudyChart(){
+  if(typeof Chart==="undefined")return;
   const ctx=$('subjectChart');if(!ctx)return;
   const progress={};subjects.forEach(s=>progress[s.n]=0);
   study.forEach(s=>{if(progress[s.n]!==undefined)progress[s.n]+=parseFloat(s.time)||0;});
@@ -840,6 +843,7 @@ function getAccReview(){
   return `总支出<b>¥${total.toFixed(0)}</b>，日均<b>¥${(total/30).toFixed(1)}</b><br>TOP3：${sorted.slice(0,3).map((c,i)=>`${i+1}.${c[0]}¥${c[1].toFixed(0)}`).join('，')}<br>💡关注占比最高的类别`;
 }
 function initAccChart(){
+  if(typeof Chart==="undefined")return;
   const ctx=$('expenseChart');if(!ctx)return;
   const data=[],labels=[];
   for(let i=6;i>=0;i--){const d=new Date(Date.now()-i*86400000).toISOString().slice(0,10);labels.push(d.slice(5));data.push(accounts.filter(a=>a.type==='支出'&&a.date===d).reduce((s,a)=>s+parseFloat(a.amount),0));}
