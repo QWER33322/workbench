@@ -1,10 +1,10 @@
-const CACHE_NAME = 'workbench-v3';
+const CACHE_NAME = 'workbench-v4';
 const ASSETS = [
   'index.html',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
+  'chart.umd.min.js'
 ];
 
 // 安装：缓存核心资源
